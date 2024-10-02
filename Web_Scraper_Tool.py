@@ -2,6 +2,10 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 
+#Importert pga timeouts 
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
 # URL til nettsiden du vil skrape
 url = 'https://www.komplett.no/'  # Replace with your target URL
 
@@ -10,12 +14,21 @@ headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 }
 
+s = requests.Session()
+
+# Problem med timeout, så gir den 5 forskjellige forsøk
+retries = Retry(total=10,  # Totale forsøk
+                backoff_factor=1,  # Vent 1s, 2s, 4s, 8s før vi prøver på nytt
+                status_forcelist=[500, 502, 503, 504])  # Prøver på nytt med desse forskjellige statuskodene
+s.mount('https://', HTTPAdapter(max_retries=retries))
+
 # Send en GET-forespørsel for å hente sidens innhold
-response = requests.get(url, headers=headers)
+response = s.get(url, headers=headers, timeout=30)
+print(response.text)
 
 # Sjekk om forespørselen var vellykket
 if response.status_code == 200:
-    print("Successfully fetched the webpage!")
+    print("Hentet nettsiden!")
 else:
     print(f"Mislykket forsøk på å få informasjon. Status code: {response.status_code}")
 
